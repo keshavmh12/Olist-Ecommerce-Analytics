@@ -1,0 +1,304 @@
+{
+  "name": "olist_agent",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\ni am your Data Analyst agent. How can I assist you today?",
+        "options": {
+          "inputPlaceholder": "Type your question..",
+          "responseMode": "lastNode"
+        }
+      },
+      "id": "b267f58d-9d40-4cd5-9499-f7572e09ddf4",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "6316c919-201e-4e46-8ca5-3a8967a23a42"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=<role>\nYou are the n8n Data Analyst AI Agent, a friendly expert on the n8n platform. You help users load and inspect spreadsheet data, analyze it, answer questions, and email results on request. You guide users step by step, narrate your actions, and turn raw spreadsheet data into clear, actionable insights.\n</role>\n\n<instructions>\n\n<goal>\nAssist users in loading and analyzing Google Sheet data. When users ask to load or analyze a sheet, use the getData tool to retrieve the latest data before answering. When users ask to email any analysis, summary, report, count, or insight, send a professional email using the \"Send a message in Gmail\" tool.\n</goal>\n\n<context>\n\n### Available Tools\n\n#### getData\n\n* Description: Reads rows from a Google Sheet.\n* Always use this tool whenever spreadsheet data is required before answering.\n\n#### Send a message in Gmail\n\n* Description: Sends an email.\n* The recipient, subject, and Gmail account are already configured.\n* You only need to provide the email body.\n* Never ask the user for the recipient email address.\n* Only ask for clarification if it is unclear what should be emailed.\n\n### Email Formatting Rules\n\nWhenever you call the \"Send a message in Gmail\" tool:\n\n* Generate the email body as valid HTML.\n* Do NOT generate plain text.\n* Do NOT generate Markdown.\n* Use only simple HTML that renders well in Gmail.\n\nAlways follow this structure:\n\n<h2>Report Title</h2>\n\n<p>Hello,</p>\n\n<p>A short introduction describing what this report contains.</p>\n\n<h3>Section Heading</h3>\n\n<ul>\n<li>Point 1</li>\n<li>Point 2</li>\n<li>Point 3</li>\n</ul>\n\n<h3>Another Section</h3>\n\n<ul>\n<li>Point 1</li>\n<li>Point 2</li>\n</ul>\n\n<h3>Notes</h3>\n\n<ul>\n<li>Important note</li>\n<li>Additional note</li>\n</ul>\n\n<p>Regards,<br>n8n Data Analyst AI</p>\n\nFormatting Guidelines:\n\n* Use <h2> for the main title.\n* Use <h3> for section headings.\n* Use <p> for paragraphs.\n* Use <ul><li> for lists.\n* Use <strong> to highlight important numbers or values.\n* Never send one long paragraph.\n* Keep paragraphs short.\n* Preserve all facts and numbers exactly.\n* Do not invent or modify any information.\n* Return ONLY the HTML email body.\n\n### When to Email\n\nIf the user requests an email:\n\n1. Retrieve the required data using the getData tool if necessary.\n2. Analyze the data.\n3. Convert the analysis into a well-structured HTML email following the formatting rules above.\n4. Call the \"Send a message in Gmail\" tool using that HTML as the message body.\n5. Confirm to the user that the email has been sent.\n\n### Current Date & Time\n\n{{ $now }}\n\n</context>\n\n<output_format>\n\n1. Use tools whenever required.\n2. Explain briefly what you did.\n3. If an email was requested, confirm that it was was sent.\n4. Keep responses friendly, concise, and professional.\n\n</output_format>\n\nYou are a helpful assistant.\n\n[Your Google Sheet Link]\n"
+        }
+      },
+      "id": "fd6c0dad-52a3-4ea2-a5de-bcf726108de0",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "7c4f4343-66fa-4b51-a852-77db63f1ae48",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        208
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "id": "a7fef3ce-80ca-43ad-bf9b-4023390973e4",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        192,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Runs an exact analysis over the FULL Olist dataset (all rows of the sheets, joins included) and returns only the aggregated result. Use this for any count, sum, average, ranking, trend or breakdown. Query spec (JSON string) fields: from (sheet name); joins: [{sheet, on, rightOn?, type?: 'inner'|'left'}]; derive: [{name, from (timestamp column), fn: 'year'|'month'|'yearmonth'|'date'}]; filters: [{column, op: '='|'!='|'>'|'>='|'<'|'<='|'in'|'contains'|'startsWith', value}]; groupBy: [column names]; aggregations: [{fn: 'count'|'countDistinct'|'sum'|'avg'|'min'|'max', column?, as}]; orderBy: {column, dir: 'asc'|'desc'}; limit (max 100). Example revenue by year: {\"from\":\"olist_orders_dataset\",\"joins\":[{\"sheet\":\"olist_order_payments_dataset\",\"on\":\"order_id\"}],\"derive\":[{\"name\":\"year\",\"from\":\"order_purchase_timestamp\",\"fn\":\"year\"}],\"filters\":[{\"column\":\"order_status\",\"op\":\"=\",\"value\":\"delivered\"}],\"groupBy\":[\"year\"],\"aggregations\":[{\"fn\":\"sum\",\"column\":\"payment_value\",\"as\":\"revenue\"}]}",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "5k4mA8XfFnaRH4LP"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ $fromAI('query', 'Query spec as a JSON string, see tool description', 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "cb58f34a-e608-4b7f-afae-a5bbacf60ff5",
+      "name": "analyze_dataset",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1eIJ0i3bU1Sqnprn6dV0mnE0tyQXIIeIrkerT1uiOLW0",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $fromAI('Sheet', 'Exact sheet name, one of the sheet names listed in the system prompt', 'string') }}",
+          "mode": "name"
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRangeA1",
+              "range": "={{ $fromAI('Range', 'A1 range that starts at row 1 (header) and covers at most 200 rows, e.g. A1:Z200', 'string') }}"
+            }
+          }
+        }
+      },
+      "id": "4d7064e3-64ac-4a27-b8e2-9a2a7b1762d6",
+      "name": "get_sheet_rows",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Id2PBIRWVLbdziTq",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1eIJ0i3bU1Sqnprn6dV0mnE0tyQXIIeIrkerT1uiOLW0",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "sheets.properties(title,gridProperties(rowCount,columnCount))"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dd435ec7-c192-41ac-a68d-55507db131f8",
+      "name": "get_sheet_sizes",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        640,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Id2PBIRWVLbdziTq",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "keshavsingh995545@gmail.com",
+        "subject": "={{ $fromAI('Subject', 'Email subject line', 'string') }}",
+        "message": "={{ $fromAI('Message', 'HTML email body containing the full results/data to share (include the actual numbers or rows in the body)', 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "7089944b-5e4f-49d8-9414-baae84dac7a4",
+      "name": "Send a message in Gmail",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        208
+      ],
+      "webhookId": "2a140ad2-82fd-4fa4-9e2e-97c0d29b94b6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "S0d7Yyh4YdAkPuZg",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyze_dataset": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_sheet_rows": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_sheet_sizes": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "versionId": "b8ab2beb-c84e-4c86-a1b9-fea5ecd5c67b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c20e452d36077cf2a7ac872f8bdb5606a4b666a4e4d69c8bf398839d7d17bdc9"
+  },
+  "nodeGroups": [],
+  "id": "l494MjYvGjGbW1yS",
+  "tags": []
+}
